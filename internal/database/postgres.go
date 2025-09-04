@@ -25,5 +25,5 @@ func NewPostgresDB(cfg *config.Config) (*gorm.DB, error) {
 }
 
 func AutoMigrate(db *gorm.DB) {
-	db.AutoMigrate(&model.People{}, &model.TimeRecord{})
+	db.AutoMigrate(&model.Person{})
 }

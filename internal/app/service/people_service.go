@@ -8,9 +8,9 @@ import (
 )
 
 type PeopleService interface {
-	CreatePeople(people *model.People) error
-	GetPeopleByID(id uint) (*model.People, error)
-	GetAllPeople() ([]model.People, error)
+	CreatePeople(people *model.Person) error
+	GetPeopleByID(id uint) (*model.Person, error)
+	GetAllPeople() ([]model.Person, error)
 }
 
 type peopleServiceImpl struct {
@@ -21,18 +21,18 @@ func NewPeopleService(repo repository.PeopleRepository) PeopleService {
 	return &peopleServiceImpl{repo: repo}
 }
 
-func (s *peopleServiceImpl) CreatePeople(people *model.People) error {
+func (s *peopleServiceImpl) CreatePeople(people *model.Person) error {
 	// Business Logic
-	if people.Name == "" {
+	if people.FirstName == "" {
 		return fmt.Errorf("name cannot be empty")
 	}
 	return s.repo.Create(people)
 }
 
-func (s *peopleServiceImpl) GetPeopleByID(id uint) (*model.People, error) {
+func (s *peopleServiceImpl) GetPeopleByID(id uint) (*model.Person, error) {
 	return s.repo.FindByID(id)
 }
 
-func (s *peopleServiceImpl) GetAllPeople() ([]model.People, error) {
+func (s *peopleServiceImpl) GetAllPeople() ([]model.Person, error) {
 	return s.repo.FindAll()
 }

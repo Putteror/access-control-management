@@ -19,7 +19,7 @@ func NewPeopleHandler(service service.PeopleService) *PeopleHandler {
 }
 
 func (h *PeopleHandler) Create(c *gin.Context) {
-	var people model.People
+	var people model.Person
 	if err := c.BindJSON(&people); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return

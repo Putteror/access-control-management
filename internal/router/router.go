@@ -9,7 +9,6 @@ import (
 func NewRouter(
 	deviceHandler *handler.DeviceHandler,
 	peopleHandler *handler.PeopleHandler,
-	timerecordHandler *handler.TimeRecordHandler,
 ) *gin.Engine {
 	router := gin.Default()
 
@@ -30,12 +29,6 @@ func NewRouter(
 			people.GET("/:id", peopleHandler.FindByID)
 		}
 
-		// TimeRecord endpoints
-		timerecords := api.Group("/timerecords")
-		{
-			timerecords.POST("/clock-in", timerecordHandler.ClockIn)
-			timerecords.POST("/clock-out", timerecordHandler.ClockOut)
-		}
 	}
 
 	return router
