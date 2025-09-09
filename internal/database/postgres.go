@@ -25,5 +25,23 @@ func NewPostgresDB(cfg *config.Config) (*gorm.DB, error) {
 }
 
 func AutoMigrate(db *gorm.DB) {
-	db.AutoMigrate(&model.Person{})
+	db.AutoMigrate(
+		&model.Person{},
+		&model.AccessControlDevice{},
+		&model.AccessControlServer{},
+		&model.AccessControlGroup{},
+		&model.AccessControlRule{},
+		&model.AccessControlGroupDevice{},
+		&model.AccessControlGroupSchedule{},
+		&model.AccessControlRuleGroup{},
+		&model.PersonCard{},
+		&model.PersonLicensePlate{},
+		&model.RegisterForm{},
+		&model.RegisterFormField{},
+		&model.RegisterFormFieldAnswer{},
+		&model.Attendance{},
+		&model.AttendanceSchedule{},
+		&model.AttendanceRecord{},
+		&model.AccessRecord{},
+	)
 }

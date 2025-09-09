@@ -24,16 +24,13 @@ func main() {
 
 	database.AutoMigrate(db)
 
-	deviceRepo := repository.NewDeviceRepository(db)
-	peopleRepo := repository.NewPeopleRepository(db)
+	peopleRepo := repository.NewPersonRepository(db)
 
-	deviceService := service.NewDeviceService(deviceRepo)
-	peopleService := service.NewPeopleService(peopleRepo)
+	peopleService := service.NewPersonService(peopleRepo)
 
-	deviceHandler := handler.NewDeviceHandler(deviceService)
-	peopleHandler := handler.NewPeopleHandler(peopleService)
+	peopleHandler := handler.NewPersonHandler(peopleService)
 
-	appRouter := router.NewRouter(deviceHandler, peopleHandler)
+	appRouter := router.NewRouter(peopleHandler)
 
 	log.Printf("Server is starting on port %s", cfg.Port)
 	if err := appRouter.Run(":" + cfg.Port); err != nil {

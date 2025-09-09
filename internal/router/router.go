@@ -7,26 +7,20 @@ import (
 )
 
 func NewRouter(
-	deviceHandler *handler.DeviceHandler,
-	peopleHandler *handler.PeopleHandler,
+	peopleHandler *handler.PersonHandler,
 ) *gin.Engine {
 	router := gin.Default()
 
 	api := router.Group("/api")
 	{
-		// Device endpoints
-		devices := api.Group("/device")
-		{
-			devices.POST("/", deviceHandler.Create)
-			devices.GET("/", deviceHandler.FindAll)
-		}
 
 		// People endpoints
 		people := api.Group("/people")
 		{
-			people.POST("/", peopleHandler.Create)
 			people.GET("/", peopleHandler.FindAll)
 			people.GET("/:id", peopleHandler.FindByID)
+			people.POST("/", peopleHandler.Create)
+			people.DELETE("/:id", peopleHandler.DeletePerson)
 		}
 
 	}
