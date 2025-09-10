@@ -2,6 +2,8 @@ package main
 
 import (
 	"log"
+	"os"
+	"path/filepath"
 
 	"github.com/putteror/access-control-management/internal/app/handler"
 	"github.com/putteror/access-control-management/internal/app/repository"
@@ -24,9 +26,16 @@ func main() {
 
 	database.AutoMigrate(db)
 
+	wd, err := os.Getwd()
+	if err != nil {
+		log.Fatalf("Error getting working directory: %v", err)
+	}
+	uploadPath := filepath.Join(wd, "uploads")
+
+	fileRepo := repository.NewFileSystemRepo(uploadPath)
 	peopleRepo := repository.NewPersonRepository(db)
 
-	peopleService := service.NewPersonService(peopleRepo)
+	peopleService := service.NewPersonService(peopleRepo, fileRepo)
 
 	peopleHandler := handler.NewPersonHandler(peopleService)
 

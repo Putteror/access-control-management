@@ -3,8 +3,8 @@ package service
 import (
 	"fmt"
 	"mime/multipart"
-	"os"
 
+	"github.com/putteror/access-control-management/internal/app/constants"
 	"github.com/putteror/access-control-management/internal/app/model"
 	"github.com/putteror/access-control-management/internal/app/repository"
 )
@@ -18,43 +18,54 @@ type PersonService interface {
 }
 
 type personServiceImpl struct {
-	repo repository.PersonRepository
+	personRepo repository.PersonRepository
+	fileRepo   repository.FileRepository
 }
 
-func NewPersonService(repo repository.PersonRepository) PersonService {
-	return &personServiceImpl{repo: repo}
+func NewPersonService(personRepo repository.PersonRepository, fileRepo repository.FileRepository) PersonService {
+	return &personServiceImpl{
+		personRepo: personRepo,
+		fileRepo:   fileRepo,
+	}
 }
 
 func (s *personServiceImpl) GetAllPeople() ([]model.Person, error) {
-	return s.repo.FindAll()
+	return s.personRepo.FindAll()
 }
 
 func (s *personServiceImpl) GetPersonByID(id string) (*model.Person, error) {
-	return s.repo.FindByID(id)
+	return s.personRepo.FindByID(id)
 }
 
 func (s *personServiceImpl) CreatePerson(person *model.Person, faceImageFile *multipart.FileHeader) error {
-	// Business Logic
+	var filePath string
 	if person.FirstName == "" {
 		return fmt.Errorf("name cannot be empty")
 	}
-	filePath, err := s.repo.SaveImage(faceImageFile)
-	if err != nil {
-		return fmt.Errorf("failed to save image file: %w", err)
+	if faceImageFile != nil {
+		var err error
+		filePath, err = s.fileRepo.Save(faceImageFile, constants.FaceImagePath)
+		if err != nil {
+			return fmt.Errorf("failed to save image file: %w", err)
+		}
+		person.FaceImagePath = filePath
 	}
 
-	// 2. Defer the file deletion in case of DB failure
-	defer os.Remove(filePath)
+	err := s.personRepo.Create(person)
+	if err != nil {
+		if filePath != "" {
+			s.fileRepo.Delete(filePath)
+		}
+		return fmt.Errorf("failed to save person to database: %w", err)
+	}
 
-	// 3. Update the person model
-	person.FaceImagePath = filePath
-	return s.repo.Create(person)
+	return nil
 }
 
 func (s *personServiceImpl) UpdatePerson(person *model.Person) error {
-	return s.repo.Update(person)
+	return s.personRepo.Update(person)
 }
 
 func (s *personServiceImpl) DeletePerson(id string) error {
-	return s.repo.Delete(id)
+	return s.personRepo.Delete(id)
 }
