@@ -4,13 +4,14 @@ import (
 	"fmt"
 	"mime/multipart"
 
-	"github.com/putteror/access-control-management/internal/app/constants"
+	"github.com/putteror/access-control-management/internal/app/common"
 	"github.com/putteror/access-control-management/internal/app/model"
 	"github.com/putteror/access-control-management/internal/app/repository"
 )
 
 type PersonService interface {
 	GetAllPeople() ([]model.Person, error)
+	PaginatedFindAllPeople(page, limit int) ([]model.Person, error)
 	GetPersonByID(id string) (*model.Person, error)
 	CreatePerson(person *model.Person, faceImageFile *multipart.FileHeader) error
 	UpdatePerson(person *model.Person) error
@@ -33,6 +34,10 @@ func (s *personServiceImpl) GetAllPeople() ([]model.Person, error) {
 	return s.personRepo.FindAll()
 }
 
+func (s *personServiceImpl) PaginatedFindAllPeople(page, limit int) ([]model.Person, error) {
+	return s.personRepo.PaginatedFindAll(page, limit)
+}
+
 func (s *personServiceImpl) GetPersonByID(id string) (*model.Person, error) {
 	return s.personRepo.FindByID(id)
 }
@@ -44,7 +49,7 @@ func (s *personServiceImpl) CreatePerson(person *model.Person, faceImageFile *mu
 	}
 	if faceImageFile != nil {
 		var err error
-		filePath, err = s.fileRepo.Save(faceImageFile, constants.FaceImagePath)
+		filePath, err = s.fileRepo.Save(faceImageFile, common.FaceImagePath)
 		if err != nil {
 			return fmt.Errorf("failed to save image file: %w", err)
 		}

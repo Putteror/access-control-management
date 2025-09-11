@@ -6,6 +6,8 @@ import (
 	"time"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/putteror/access-control-management/internal/app/common"
+	"github.com/putteror/access-control-management/internal/app/dto"
 	"github.com/putteror/access-control-management/internal/app/model"
 	"github.com/putteror/access-control-management/internal/app/service"
 
@@ -63,13 +65,32 @@ func NewPersonHandler(service service.PersonService) *PersonHandler {
 }
 
 func (h *PersonHandler) FindAll(c *gin.Context) {
-	persons, err := h.service.GetAllPeople()
+	// Get query parameters for pagination using the dedicated function
+	page, limit, err := common.GetPaginationParams(c)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		common.ErrorResponse(c, http.StatusBadRequest, "Invalid page or limit parameter")
 		return
 	}
 
-	c.JSON(http.StatusOK, persons)
+	// Retrieve persons from the service with pagination
+	persons, err := h.service.PaginatedFindAllPeople(page, limit)
+	if err != nil {
+		common.ErrorResponse(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	personDTOs := make([]dto.PersonDTO, len(persons))
+	for i, person := range persons {
+		personDTOs[i] = dto.PersonDTO{
+			ID:           person.ID,
+			FirstName:    person.FirstName,
+			LastName:     person.LastName,
+			Email:        person.Email,
+			DateOfBirth:  person.DateOfBirth,
+			MobileNumber: person.MobileNumber,
+		}
+	}
+
+	common.SuccessResponse(c, "All persons retrieved", personDTOs)
 }
 
 func (h *PersonHandler) FindByID(c *gin.Context) {

@@ -1,6 +1,8 @@
 package repository
 
 import (
+	"fmt"
+
 	"github.com/putteror/access-control-management/internal/app/model"
 
 	"gorm.io/gorm"
@@ -8,6 +10,7 @@ import (
 
 type PersonRepository interface {
 	FindAll() ([]model.Person, error)
+	PaginatedFindAll(page, limit int) ([]model.Person, error)
 	FindByID(id string) (*model.Person, error)
 	Create(people *model.Person) error
 	Update(people *model.Person) error
@@ -28,6 +31,15 @@ func (r *personRepositoryImpl) FindAll() ([]model.Person, error) {
 		return nil, err
 	}
 	return people, nil
+}
+
+func (r *personRepositoryImpl) PaginatedFindAll(page, limit int) ([]model.Person, error) {
+	var persons []model.Person
+	offset := (page - 1) * limit
+	if err := r.db.Offset(offset).Limit(limit).Find(&persons).Error; err != nil {
+		return nil, fmt.Errorf("failed to retrieve paginated persons: %w", err)
+	}
+	return persons, nil
 }
 
 func (r *personRepositoryImpl) FindByID(id string) (*model.Person, error) {
