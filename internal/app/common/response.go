@@ -11,6 +11,16 @@ type APIResponse struct {
 	Success bool        `json:"success"`
 	Message string      `json:"message"`
 	Data    interface{} `json:"data,omitempty"`
+	Page    interface{} `json:"page,omitempty"`
+}
+
+func GetDataListResponse(c *gin.Context, message string, data interface{}, pageData PageResponse) {
+	c.JSON(http.StatusOK, APIResponse{
+		Success: true,
+		Message: message,
+		Data:    data,
+		Page:    pageData,
+	})
 }
 
 // Function to send a success response

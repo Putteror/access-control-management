@@ -7,70 +7,86 @@ import (
 	"github.com/putteror/access-control-management/internal/app/common"
 	"github.com/putteror/access-control-management/internal/app/model"
 	"github.com/putteror/access-control-management/internal/app/repository"
+	"github.com/putteror/access-control-management/internal/app/schema"
 )
 
 type PersonService interface {
-	GetAllPeople() ([]model.Person, error)
-	PaginatedFindAllPeople(page, limit int) ([]model.Person, error)
-	GetPersonByID(id string) (*model.Person, error)
-	CreatePerson(person *model.Person, faceImageFile *multipart.FileHeader) error
-	UpdatePerson(person *model.Person) error
-	DeletePerson(id string) error
+	GetAll(searchQuery schema.PersonSearchQuery) ([]model.Person, error)
+	GetByID(id string) (*model.Person, error)
+	Save(id *string, personModel *model.Person, faceImageFile *multipart.FileHeader) error
+	Delete(id string) error
 }
 
 type personServiceImpl struct {
-	personRepo repository.PersonRepository
-	fileRepo   repository.FileRepository
+	personRepo            repository.PersonRepository
+	fileRepo              repository.FileRepository
+	accessControlRuleRepo repository.AccessControlRuleRepository
 }
 
-func NewPersonService(personRepo repository.PersonRepository, fileRepo repository.FileRepository) PersonService {
+func NewPersonService(personRepo repository.PersonRepository, fileRepo repository.FileRepository, accessControlRuleRepo repository.AccessControlRuleRepository) PersonService {
 	return &personServiceImpl{
-		personRepo: personRepo,
-		fileRepo:   fileRepo,
+		personRepo:            personRepo,
+		fileRepo:              fileRepo,
+		accessControlRuleRepo: accessControlRuleRepo,
 	}
 }
 
-func (s *personServiceImpl) GetAllPeople() ([]model.Person, error) {
-	return s.personRepo.FindAll()
+func (s *personServiceImpl) GetAll(searchQuery schema.PersonSearchQuery) ([]model.Person, error) {
+	return s.personRepo.GetAll(searchQuery)
 }
 
-func (s *personServiceImpl) PaginatedFindAllPeople(page, limit int) ([]model.Person, error) {
-	return s.personRepo.PaginatedFindAll(page, limit)
-}
-
-func (s *personServiceImpl) GetPersonByID(id string) (*model.Person, error) {
+func (s *personServiceImpl) GetByID(id string) (*model.Person, error) {
 	return s.personRepo.FindByID(id)
 }
 
-func (s *personServiceImpl) CreatePerson(person *model.Person, faceImageFile *multipart.FileHeader) error {
-	var filePath string
-	if person.FirstName == "" {
-		return fmt.Errorf("name cannot be empty")
+func (s *personServiceImpl) Save(id *string, personModel *model.Person, faceImageFile *multipart.FileHeader) error {
+
+	var faceImagePath string
+
+	// validate
+	if personModel.FirstName == "" || personModel.LastName == "" {
+		return fmt.Errorf("firstName and lastName cannot be empty")
 	}
 	if faceImageFile != nil {
 		var err error
-		filePath, err = s.fileRepo.Save(faceImageFile, common.FaceImagePath)
+		faceImagePath, err = s.fileRepo.Save(faceImageFile, common.FaceImagePath)
 		if err != nil {
 			return fmt.Errorf("failed to save image file: %w", err)
 		}
-		person.FaceImagePath = filePath
+		personModel.FaceImagePath = faceImagePath
+	}
+	if personModel.AccessControlRuleID != "" {
+		isExist, err := s.accessControlRuleRepo.IsExistID(personModel.AccessControlRuleID)
+		if err != nil {
+			return fmt.Errorf("failed to check if rule ID exists: %w", err)
+		}
+		if !isExist {
+			return fmt.Errorf("rule ID '%s' does not exist", personModel.AccessControlRuleID)
+		}
 	}
 
-	err := s.personRepo.Create(person)
-	if err != nil {
-		if filePath != "" {
-			s.fileRepo.Delete(filePath)
+	// Save data
+	if id != nil {
+		err := s.personRepo.Create(personModel)
+		if err != nil {
+			if faceImagePath != "" {
+				s.fileRepo.Delete(faceImagePath)
+			}
+			return fmt.Errorf("failed to save person to database: %w", err)
 		}
-		return fmt.Errorf("failed to save person to database: %w", err)
+	} else {
+		err := s.personRepo.Update(personModel)
+		if err != nil {
+			if faceImagePath != "" {
+				s.fileRepo.Delete(faceImagePath)
+			}
+			return fmt.Errorf("failed to update person in database: %w", err)
+		}
 	}
 
 	return nil
 }
 
-func (s *personServiceImpl) UpdatePerson(person *model.Person) error {
-	return s.personRepo.Update(person)
-}
-
-func (s *personServiceImpl) DeletePerson(id string) error {
+func (s *personServiceImpl) Delete(id string) error {
 	return s.personRepo.Delete(id)
 }

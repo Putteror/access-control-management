@@ -20,7 +20,7 @@ func NewRouter(
 			people.GET("/", peopleHandler.FindAll)
 			people.GET("/:id", peopleHandler.FindByID)
 			people.POST("/", peopleHandler.Create)
-			people.DELETE("/:id", peopleHandler.DeletePerson)
+			people.DELETE("/:id", peopleHandler.Delete)
 		}
 
 	}

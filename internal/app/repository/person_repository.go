@@ -4,13 +4,13 @@ import (
 	"fmt"
 
 	"github.com/putteror/access-control-management/internal/app/model"
+	"github.com/putteror/access-control-management/internal/app/schema"
 
 	"gorm.io/gorm"
 )
 
 type PersonRepository interface {
-	FindAll() ([]model.Person, error)
-	PaginatedFindAll(page, limit int) ([]model.Person, error)
+	GetAll(searchQuery schema.PersonSearchQuery) ([]model.Person, error)
 	FindByID(id string) (*model.Person, error)
 	Create(people *model.Person) error
 	Update(people *model.Person) error
@@ -33,10 +33,38 @@ func (r *personRepositoryImpl) FindAll() ([]model.Person, error) {
 	return people, nil
 }
 
-func (r *personRepositoryImpl) PaginatedFindAll(page, limit int) ([]model.Person, error) {
+func (r *personRepositoryImpl) GetAll(searchQuery schema.PersonSearchQuery) ([]model.Person, error) {
 	var persons []model.Person
+
+	query := r.db.Model(&model.Person{})
+
+	// Add search conditions based on the provided query
+	if searchQuery.FirstName != "" {
+		query = query.Where("first_name ILIKE ?", "%"+searchQuery.FirstName+"%")
+	}
+	if searchQuery.LastName != "" {
+		query = query.Where("last_name ILIKE ?", "%"+searchQuery.LastName+"%")
+	}
+	if searchQuery.Company != "" {
+		query = query.Where("company ILIKE ?", "%"+searchQuery.Company+"%")
+	}
+	if searchQuery.Department != "" {
+		query = query.Where("department ILIKE ?", "%"+searchQuery.Department+"%")
+	}
+	if searchQuery.JobPosition != "" {
+		query = query.Where("job_position ILIKE ?", "%"+searchQuery.JobPosition+"%")
+	}
+	if searchQuery.MobileNumber != "" {
+		query = query.Where("mobile_number ILIKE ?", "%"+searchQuery.MobileNumber+"%")
+	}
+	if searchQuery.Email != "" {
+		query = query.Where("email ILIKE ?", "%"+searchQuery.Email+"%")
+	}
+
+	var page int = searchQuery.Page
+	var limit int = searchQuery.Limit
 	offset := (page - 1) * limit
-	if err := r.db.Offset(offset).Limit(limit).Find(&persons).Error; err != nil {
+	if err := query.Offset(offset).Limit(limit).Find(&persons).Error; err != nil {
 		return nil, fmt.Errorf("failed to retrieve paginated persons: %w", err)
 	}
 	return persons, nil

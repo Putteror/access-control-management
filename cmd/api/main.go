@@ -34,8 +34,9 @@ func main() {
 
 	fileRepo := repository.NewFileSystemRepo(uploadPath)
 	peopleRepo := repository.NewPersonRepository(db)
+	accessControlRuleRepo := repository.NewAccessControlRuleRepository(db)
 
-	peopleService := service.NewPersonService(peopleRepo, fileRepo)
+	peopleService := service.NewPersonService(peopleRepo, fileRepo, accessControlRuleRepo)
 
 	peopleHandler := handler.NewPersonHandler(peopleService)
 

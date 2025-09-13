@@ -6,6 +6,13 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+type PageResponse struct {
+	Page      int `json:"page"`
+	Size      int `json:"size"`
+	Total     int `json:"total"`
+	TotalPage int `json:"totalPage"`
+}
+
 // GetPaginationParams extracts and validates pagination parameters from the request.
 // It returns the page and limit as integers, and an error if the parameters are invalid.
 func GetPaginationParams(c *gin.Context) (page, limit int, err error) {
