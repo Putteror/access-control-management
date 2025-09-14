@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/putteror/access-control-management/internal/app/common"
 	"github.com/putteror/access-control-management/internal/app/handler"
 	"github.com/putteror/access-control-management/internal/app/repository"
 	"github.com/putteror/access-control-management/internal/app/service"
@@ -30,17 +31,22 @@ func main() {
 	if err != nil {
 		log.Fatalf("Error getting working directory: %v", err)
 	}
-	uploadPath := filepath.Join(wd, "uploads")
+	uploadPath := filepath.Join(wd, common.UploadPath)
 
 	fileRepo := repository.NewFileSystemRepo(uploadPath)
 	peopleRepo := repository.NewPersonRepository(db)
 	accessControlRuleRepo := repository.NewAccessControlRuleRepository(db)
 
 	peopleService := service.NewPersonService(peopleRepo, fileRepo, accessControlRuleRepo)
+	accessControlRuleService := service.NewAccessControlRuleService(accessControlRuleRepo)
 
 	peopleHandler := handler.NewPersonHandler(peopleService)
+	accessControlRuleHandler := handler.NewAccessControlRuleHandler(accessControlRuleService)
 
-	appRouter := router.NewRouter(peopleHandler)
+	appRouter := router.NewRouter(
+		accessControlRuleHandler,
+		peopleHandler,
+	)
 
 	log.Printf("Server is starting on port %s", cfg.Port)
 	if err := appRouter.Run(":" + cfg.Port); err != nil {

@@ -2,7 +2,9 @@ package common
 
 const (
 	// UploadPaths
-	FaceImagePath = "images/faces/people"
-	IDCardPath    = "images/id-cards"
-	PassportPath  = "images/passports"
+	UploadPath = "/uploads"
+
+	FaceImagePath = "/images/faces/people"
+	IDCardPath    = "/images/id-cards"
+	PassportPath  = "/images/passports"
 )

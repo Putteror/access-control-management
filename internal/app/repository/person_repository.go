@@ -11,7 +11,7 @@ import (
 
 type PersonRepository interface {
 	GetAll(searchQuery schema.PersonSearchQuery) ([]model.Person, error)
-	FindByID(id string) (*model.Person, error)
+	GetByID(id string) (*model.Person, error)
 	Create(people *model.Person) error
 	Update(people *model.Person) error
 	Delete(id string) error
@@ -70,7 +70,7 @@ func (r *personRepositoryImpl) GetAll(searchQuery schema.PersonSearchQuery) ([]m
 	return persons, nil
 }
 
-func (r *personRepositoryImpl) FindByID(id string) (*model.Person, error) {
+func (r *personRepositoryImpl) GetByID(id string) (*model.Person, error) {
 	var person model.Person
 	if err := r.db.First(&person, "id = ?", id).Error; err != nil {
 		return nil, err
@@ -88,4 +88,15 @@ func (r *personRepositoryImpl) Update(person *model.Person) error {
 
 func (r *personRepositoryImpl) Delete(id string) error {
 	return r.db.Unscoped().Where("id = ?", id).Delete(&model.Person{}).Error
+}
+
+// IsExistName
+func (r *personRepositoryImpl) IsExistName(name string) (bool, error) {
+	var count int64
+	var person model.Person
+	result := r.db.Model(&person).Where("first_name = ? AND last_name = ? AND deleted_at IS NULL", name).Count(&count)
+	if result.Error != nil {
+		return false, fmt.Errorf("failed to check rule existence: %w", result.Error)
+	}
+	return count > 0, nil
 }
