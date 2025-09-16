@@ -77,7 +77,17 @@ func (s *personServiceImpl) Save(id string, personModel *model.Person, faceImage
 			return fmt.Errorf("failed to save person to database: %w", err)
 		}
 	} else {
-		err := s.personRepo.Update(personModel)
+		// Check existing id
+		existingPerson, err := s.personRepo.GetByID(id)
+		if err != nil {
+			return fmt.Errorf("failed to get existing person: %w", err)
+		}
+		if existingPerson == nil {
+			return fmt.Errorf("person with ID '%s' not found", id)
+		}
+
+		// Update existing person
+		err = s.personRepo.Update(personModel)
 		if err != nil {
 			if faceImagePath != "" {
 				s.fileRepo.Delete(faceImagePath)

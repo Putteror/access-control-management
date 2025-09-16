@@ -181,7 +181,13 @@ func (h *PersonHandler) Create(c *gin.Context) {
 		return
 	}
 
-	common.SuccessResponse(c, "Create person success", person)
+	personResponse, err := h.service.ConvertToResponse(&person)
+	if err != nil {
+		common.ErrorResponse(c, http.StatusNotFound, err.Error())
+		return
+	}
+
+	common.SuccessResponse(c, "Create person success", personResponse)
 }
 
 func (h *PersonHandler) Update(c *gin.Context) {
@@ -271,7 +277,13 @@ func (h *PersonHandler) Update(c *gin.Context) {
 		return
 	}
 
-	common.SuccessResponse(c, "Create person success", person)
+	personResponse, err := h.service.ConvertToResponse(&person)
+	if err != nil {
+		common.ErrorResponse(c, http.StatusNotFound, err.Error())
+		return
+	}
+
+	common.SuccessResponse(c, "Create person success", personResponse)
 }
 
 func (h *PersonHandler) Delete(c *gin.Context) {

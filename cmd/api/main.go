@@ -34,17 +34,25 @@ func main() {
 	uploadPath := filepath.Join(wd, common.UploadPath)
 
 	fileRepo := repository.NewFileSystemRepo(uploadPath)
-	peopleRepo := repository.NewPersonRepository(db)
+	accessControlDeviceRepo := repository.NewAccessControlDeviceRepository(db)
 	accessControlRuleRepo := repository.NewAccessControlRuleRepository(db)
+	accessControlServerRepo := repository.NewAccessControlServerRepository(db)
+	peopleRepo := repository.NewPersonRepository(db)
 
-	peopleService := service.NewPersonService(peopleRepo, fileRepo, accessControlRuleRepo)
+	accessControlDeviceService := service.NewAccessControlDeviceService(accessControlDeviceRepo, accessControlServerRepo)
 	accessControlRuleService := service.NewAccessControlRuleService(accessControlRuleRepo)
+	accessControlServerService := service.NewAccessControlServerService(accessControlServerRepo)
+	peopleService := service.NewPersonService(peopleRepo, fileRepo, accessControlRuleRepo)
 
-	peopleHandler := handler.NewPersonHandler(peopleService)
+	accessControlDeviceHandler := handler.NewAccessControlDeviceHandler(accessControlDeviceService)
 	accessControlRuleHandler := handler.NewAccessControlRuleHandler(accessControlRuleService)
+	accessControlServerHandler := handler.NewAccessControlServerHandler(accessControlServerService)
+	peopleHandler := handler.NewPersonHandler(peopleService)
 
 	appRouter := router.NewRouter(
+		accessControlDeviceHandler,
 		accessControlRuleHandler,
+		accessControlServerHandler,
 		peopleHandler,
 	)
 
