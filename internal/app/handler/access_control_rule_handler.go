@@ -19,8 +19,6 @@ func NewAccessControlRuleHandler(service service.AccessControlRuleService) *Acce
 	return &AccessControlRuleHandler{service: service}
 }
 
-var validate *validator.Validate
-
 func init() {
 	validate = validator.New()
 }
@@ -47,7 +45,7 @@ func (h *AccessControlRuleHandler) GetAll(c *gin.Context) {
 	ruleResponses := make([]schema.AccessControlRuleResponse, len(rules))
 	for i, rule := range rules {
 		response := schema.AccessControlRuleResponse{
-			ID:   rule.ID,
+			ID:   rule.ID.String(),
 			Name: rule.Name,
 		}
 		ruleResponses[i] = response
@@ -75,7 +73,7 @@ func (h *AccessControlRuleHandler) GetByID(c *gin.Context) {
 	var ruleResponse schema.AccessControlRuleResponse
 	if rule != nil {
 		ruleResponse = schema.AccessControlRuleResponse{
-			ID:   rule.ID,
+			ID:   rule.ID.String(),
 			Name: rule.Name,
 		}
 	}
@@ -124,7 +122,6 @@ func (h *AccessControlRuleHandler) Update(c *gin.Context) {
 	rule := model.AccessControlRule{
 		Name: bodyRequest.Name,
 	}
-	rule.ID = id
 
 	if err := h.service.Save(id, &rule); err != nil {
 		common.ErrorResponse(c, http.StatusInternalServerError, err.Error())

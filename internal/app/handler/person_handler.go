@@ -270,7 +270,6 @@ func (h *PersonHandler) Update(c *gin.Context) {
 		AccessControlRuleID: bodyRequest.AccessControlRuleID,
 		TimeAttendanceID:    bodyRequest.TimeAttendanceID,
 	}
-	person.ID = id
 
 	if err := h.service.Save(id, &person, faceImageFile); err != nil {
 		common.ErrorResponse(c, http.StatusInternalServerError, err.Error())

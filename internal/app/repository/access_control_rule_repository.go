@@ -3,6 +3,7 @@ package repository
 import (
 	"fmt"
 
+	"github.com/google/uuid"
 	"github.com/putteror/access-control-management/internal/app/model"
 	"github.com/putteror/access-control-management/internal/app/schema"
 	"gorm.io/gorm"
@@ -11,10 +12,10 @@ import (
 // AccessControlRuleRepository is the interface for access control rule data access.
 type AccessControlRuleRepository interface {
 	GetAll(searchQuery schema.AccessControlRuleSearchQuery) ([]model.AccessControlRule, error)
-	GetByID(id string) (*model.AccessControlRule, error)
+	GetByID(id uuid.UUID) (*model.AccessControlRule, error)
 	Create(rule *model.AccessControlRule) error
 	Update(rule *model.AccessControlRule) error
-	Delete(id string) error
+	Delete(id uuid.UUID) error
 	IsExistName(name string) (bool, error)
 }
 
@@ -47,7 +48,7 @@ func (r *accessControlRuleRepositoryImpl) GetAll(searchQuery schema.AccessContro
 }
 
 // GetByID retrieves a rule by its ID.
-func (r *accessControlRuleRepositoryImpl) GetByID(id string) (*model.AccessControlRule, error) {
+func (r *accessControlRuleRepositoryImpl) GetByID(id uuid.UUID) (*model.AccessControlRule, error) {
 	var rule model.AccessControlRule
 	if err := r.db.First(&rule, "id = ?", id).Error; err != nil {
 		return nil, err
@@ -66,7 +67,7 @@ func (r *accessControlRuleRepositoryImpl) Update(rule *model.AccessControlRule) 
 }
 
 // Delete deletes an access control rule by its ID.
-func (r *accessControlRuleRepositoryImpl) Delete(id string) error {
+func (r *accessControlRuleRepositoryImpl) Delete(id uuid.UUID) error {
 	return r.db.Unscoped().Where("id = ?", id).Delete(&model.AccessControlRule{}).Error
 }
 

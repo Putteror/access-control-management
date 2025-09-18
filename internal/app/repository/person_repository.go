@@ -3,6 +3,7 @@ package repository
 import (
 	"fmt"
 
+	"github.com/google/uuid"
 	"github.com/putteror/access-control-management/internal/app/model"
 	"github.com/putteror/access-control-management/internal/app/schema"
 
@@ -11,10 +12,10 @@ import (
 
 type PersonRepository interface {
 	GetAll(searchQuery schema.PersonSearchQuery) ([]model.Person, error)
-	GetByID(id string) (*model.Person, error)
+	GetByID(id uuid.UUID) (*model.Person, error)
 	Create(people *model.Person) error
 	Update(people *model.Person) error
-	Delete(id string) error
+	Delete(id uuid.UUID) error
 }
 
 type personRepositoryImpl struct {
@@ -70,7 +71,7 @@ func (r *personRepositoryImpl) GetAll(searchQuery schema.PersonSearchQuery) ([]m
 	return persons, nil
 }
 
-func (r *personRepositoryImpl) GetByID(id string) (*model.Person, error) {
+func (r *personRepositoryImpl) GetByID(id uuid.UUID) (*model.Person, error) {
 	var person model.Person
 	if err := r.db.First(&person, "id = ?", id).Error; err != nil {
 		return nil, err
@@ -86,7 +87,7 @@ func (r *personRepositoryImpl) Update(person *model.Person) error {
 	return r.db.Save(person).Error
 }
 
-func (r *personRepositoryImpl) Delete(id string) error {
+func (r *personRepositoryImpl) Delete(id uuid.UUID) error {
 	return r.db.Unscoped().Where("id = ?", id).Delete(&model.Person{}).Error
 }
 

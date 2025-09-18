@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"mime/multipart"
 
+	"github.com/google/uuid"
 	"github.com/putteror/access-control-management/internal/app/common"
 	"github.com/putteror/access-control-management/internal/app/model"
 	"github.com/putteror/access-control-management/internal/app/repository"
@@ -38,7 +39,11 @@ func (s *personServiceImpl) GetAll(searchQuery schema.PersonSearchQuery) ([]mode
 }
 
 func (s *personServiceImpl) GetByID(id string) (*model.Person, error) {
-	return s.personRepo.GetByID(id)
+	id_uuid, err := uuid.Parse(id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid ID")
+	}
+	return s.personRepo.GetByID(id_uuid)
 }
 
 func (s *personServiceImpl) Save(id string, personModel *model.Person, faceImageFile *multipart.FileHeader) error {
@@ -58,7 +63,11 @@ func (s *personServiceImpl) Save(id string, personModel *model.Person, faceImage
 		personModel.FaceImagePath = &faceImagePath
 	}
 	if personModel.AccessControlRuleID != nil && *personModel.AccessControlRuleID != "" {
-		_, err := s.accessControlRuleRepo.GetByID(*personModel.AccessControlRuleID)
+		access_control_rule_uuid, err := uuid.Parse(*personModel.AccessControlRuleID)
+		if err != nil {
+			return fmt.Errorf("failed to parse access control server ID: %w", err)
+		}
+		_, err = s.accessControlRuleRepo.GetByID(access_control_rule_uuid)
 		if err != nil {
 			if err == gorm.ErrRecordNotFound {
 				return fmt.Errorf("rule with ID '%s' does not exist", *personModel.AccessControlRuleID)
@@ -77,8 +86,12 @@ func (s *personServiceImpl) Save(id string, personModel *model.Person, faceImage
 			return fmt.Errorf("failed to save person to database: %w", err)
 		}
 	} else {
+		id_uuid, err := uuid.Parse(id)
+		if err != nil {
+			return fmt.Errorf("invalid ID")
+		}
 		// Check existing id
-		existingPerson, err := s.personRepo.GetByID(id)
+		existingPerson, err := s.personRepo.GetByID(id_uuid)
 		if err != nil {
 			return fmt.Errorf("failed to get existing person: %w", err)
 		}
@@ -100,8 +113,12 @@ func (s *personServiceImpl) Save(id string, personModel *model.Person, faceImage
 }
 
 func (s *personServiceImpl) Delete(id string) error {
+	id_uuid, err := uuid.Parse(id)
+	if err != nil {
+		return fmt.Errorf("invalid ID")
+	}
 	var faceImagePath string
-	person, err := s.personRepo.GetByID(id)
+	person, err := s.personRepo.GetByID(id_uuid)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return fmt.Errorf("person with ID '%s' not found", id)
@@ -114,14 +131,18 @@ func (s *personServiceImpl) Delete(id string) error {
 			return err
 		}
 	}
-	return s.personRepo.Delete(id)
+	return s.personRepo.Delete(id_uuid)
 }
 
 func (s *personServiceImpl) ConvertToResponse(person *model.Person) (*schema.PersonResponse, error) {
 	var accessControlRuleResponse *schema.AccessControlRuleInfoResponse
 
 	if person.AccessControlRuleID != nil && *person.AccessControlRuleID != "" {
-		rule, err := s.accessControlRuleRepo.GetByID(*person.AccessControlRuleID)
+		access_control_rule_uuid, err := uuid.Parse(*person.AccessControlRuleID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse access control server ID: %w", err)
+		}
+		rule, err := s.accessControlRuleRepo.GetByID(access_control_rule_uuid)
 		if err != nil {
 			// If the rule is not found, we just return nil for the rule response without an error.
 			if err != gorm.ErrRecordNotFound {
@@ -130,14 +151,14 @@ func (s *personServiceImpl) ConvertToResponse(person *model.Person) (*schema.Per
 		}
 		if rule != nil {
 			accessControlRuleResponse = &schema.AccessControlRuleInfoResponse{
-				ID:   rule.ID,
+				ID:   rule.ID.String(),
 				Name: rule.Name,
 			}
 		}
 	}
 
 	response := &schema.PersonResponse{
-		ID:                person.ID,
+		ID:                person.ID.String(),
 		FirstName:         person.FirstName,
 		MiddleName:        person.MiddleName,
 		LastName:          person.LastName,

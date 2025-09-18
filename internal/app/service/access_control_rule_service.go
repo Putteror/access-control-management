@@ -3,6 +3,7 @@ package service
 import (
 	"fmt"
 
+	"github.com/google/uuid"
 	"github.com/putteror/access-control-management/internal/app/model"
 	"github.com/putteror/access-control-management/internal/app/repository"
 	"github.com/putteror/access-control-management/internal/app/schema"
@@ -34,7 +35,11 @@ func (s *accessControlRuleServiceImpl) GetAll(searchQuery schema.AccessControlRu
 
 // GetByID retrieves an access control rule by its ID.
 func (s *accessControlRuleServiceImpl) GetByID(id string) (*model.AccessControlRule, error) {
-	return s.accessControlRuleRepo.GetByID(id)
+	id_uuid, err := uuid.Parse(id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid ID")
+	}
+	return s.accessControlRuleRepo.GetByID(id_uuid)
 }
 
 // Save creates or updates an access control rule.
@@ -69,5 +74,9 @@ func (s *accessControlRuleServiceImpl) Save(id string, ruleModel *model.AccessCo
 
 // Delete deletes an access control rule by its ID.
 func (s *accessControlRuleServiceImpl) Delete(id string) error {
-	return s.accessControlRuleRepo.Delete(id)
+	id_uuid, err := uuid.Parse(id)
+	if err != nil {
+		return fmt.Errorf("invalid ID")
+	}
+	return s.accessControlRuleRepo.Delete(id_uuid)
 }

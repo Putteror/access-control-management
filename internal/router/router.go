@@ -2,19 +2,24 @@ package router
 
 import (
 	"github.com/putteror/access-control-management/internal/app/handler"
+	"github.com/putteror/access-control-management/internal/app/middleware"
 
 	"github.com/gin-gonic/gin"
 )
 
 func NewRouter(
 	accessControlDeviceHandler *handler.AccessControlDeviceHandler,
+	accessControlGroupHandler *handler.AccessControlGroupHandler,
 	accessControlRuleHandler *handler.AccessControlRuleHandler,
 	accessControlServerHandler *handler.AccessControlServerHandler,
+	authHandler *handler.AuthHandler,
 	peopleHandler *handler.PersonHandler,
 ) *gin.Engine {
 	router := gin.Default()
+	router.POST("/login", authHandler.Login)
 
 	api := router.Group("/api")
+	api.Use(middleware.JWTAuthMiddleware())
 	{
 
 		// Access Control Device endpoints
@@ -24,7 +29,19 @@ func NewRouter(
 			accessControlDevice.GET("/:id", accessControlDeviceHandler.GetByID)
 			accessControlDevice.POST("/", accessControlDeviceHandler.Create)
 			accessControlDevice.PUT("/:id", accessControlDeviceHandler.Update)
+			accessControlDevice.PATCH("/:id", accessControlDeviceHandler.PartialUpdate)
 			accessControlDevice.DELETE("/:id", accessControlDeviceHandler.Delete)
+		}
+
+		// Access Control Group endpoints
+		accessControlGroup := api.Group("/access-control-groups")
+		{
+			accessControlGroup.GET("/", accessControlGroupHandler.GetAll)
+			accessControlGroup.GET("/:id", accessControlGroupHandler.GetByID)
+			accessControlGroup.POST("/", accessControlGroupHandler.Create)
+			accessControlGroup.PUT("/:id", accessControlGroupHandler.Update)
+			accessControlGroup.PATCH("/:id", accessControlGroupHandler.PartialUpdate)
+			accessControlGroup.DELETE("/:id", accessControlGroupHandler.Delete)
 		}
 
 		// Access Control Rule endpoints
@@ -44,6 +61,7 @@ func NewRouter(
 			accessControlServer.GET("/:id", accessControlServerHandler.GetByID)
 			accessControlServer.POST("/", accessControlServerHandler.Create)
 			accessControlServer.PUT("/:id", accessControlServerHandler.Update)
+			accessControlServer.PATCH("/:id", accessControlServerHandler.PartialUpdate)
 			accessControlServer.DELETE("/:id", accessControlServerHandler.Delete)
 		}
 

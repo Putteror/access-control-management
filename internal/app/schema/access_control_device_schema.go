@@ -10,19 +10,25 @@ type AccessControlDeviceSearchQuery struct {
 }
 
 type AccessControlDeviceRequest struct {
-	Name                  string  `json:"name" validate:"required"`
-	Type                  string  `json:"type" validate:"required"`
-	HostAddress           string  `json:"hostAddress" validate:"required"`
+	Name                  *string `json:"name" validate:"required"`
+	Type                  *string `json:"type" validate:"required"`
+	HostAddress           *string `json:"hostAddress" validate:"required"`
 	Username              *string `json:"username"`
 	Password              *string `json:"password"`
 	AccessToken           *string `json:"accessToken"`
 	ApiToken              *string `json:"apiToken"`
-	RecordScan            bool    `json:"recordScan"`
-	RecordAttendance      bool    `json:"recordAttendance"`
-	AllowClockIn          bool    `json:"allowClockIn"`
-	AllowClockOut         bool    `json:"allowClockOut"`
-	Status                string  `json:"status"`
+	RecordScan            *bool   `json:"recordScan"`
+	RecordAttendance      *bool   `json:"recordAttendance"`
+	AllowClockIn          *bool   `json:"allowClockIn"`
+	AllowClockOut         *bool   `json:"allowClockOut"`
+	Status                *string `json:"status"`
 	AccessControlServerID *string `json:"accessControlServerId"`
+}
+
+type AccessControlDeviceInfoResponse struct {
+	ID          string `json:"id"`
+	Name        string `json:"name"`
+	HostAddress string `json:"hostAddress"`
 }
 
 type AccessControlDeviceResponse struct {

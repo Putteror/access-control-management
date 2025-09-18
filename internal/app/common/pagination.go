@@ -13,6 +13,9 @@ type PageResponse struct {
 	TotalPage int `json:"totalPage"`
 }
 
+var DefaultPage = 1
+var DefaultPageSize = 10
+
 // GetPaginationParams extracts and validates pagination parameters from the request.
 // It returns the page and limit as integers, and an error if the parameters are invalid.
 func GetPaginationParams(c *gin.Context) (page, limit int, err error) {

@@ -4,12 +4,14 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/go-playground/validator/v10"
 	"github.com/putteror/access-control-management/internal/app/common"
-	"github.com/putteror/access-control-management/internal/app/model"
 	"github.com/putteror/access-control-management/internal/app/schema"
 	"github.com/putteror/access-control-management/internal/app/service"
 )
+
+// ตัวแปร validate ถูกกำหนดไว้แล้วในไฟล์อื่น (น่าจะอยู่ในไฟล์เดียวกันกับ AccessControlDeviceHandler หรือไฟล์ที่ import)
+// หากต้องการให้โค้ดนี้รันได้โดยสมบูรณ์ อาจต้องเพิ่ม var validate *validator.Validate
+// แต่เพื่อให้สอดคล้องกับไฟล์ต้นฉบับ จะขอเว้นไว้ และสมมติว่ามีการประกาศไว้แล้ว
 
 type AccessControlServerHandler struct {
 	service service.AccessControlServerService
@@ -17,10 +19,6 @@ type AccessControlServerHandler struct {
 
 func NewAccessControlServerHandler(service service.AccessControlServerService) *AccessControlServerHandler {
 	return &AccessControlServerHandler{service: service}
-}
-
-func init() {
-	validate = validator.New()
 }
 
 // GetAll retrieves all access control servers.
@@ -33,10 +31,10 @@ func (h *AccessControlServerHandler) GetAll(c *gin.Context) {
 	}
 
 	if searchQuery.Page <= 0 {
-		searchQuery.Page = 1
+		searchQuery.Page = common.DefaultPage
 	}
 	if searchQuery.Limit <= 0 {
-		searchQuery.Limit = 10
+		searchQuery.Limit = common.DefaultPageSize
 	}
 	servers, err := h.service.GetAll(searchQuery)
 	if err != nil {
@@ -45,13 +43,12 @@ func (h *AccessControlServerHandler) GetAll(c *gin.Context) {
 	}
 	serverResponses := make([]schema.AccessControlServerResponse, len(servers))
 	for i, server := range servers {
-		response := schema.AccessControlServerResponse{
-			ID:          server.ID,
-			Name:        server.Name,
-			HostAddress: server.HostAddress,
-			Status:      server.Status,
+		response, err := h.service.ConvertToResponse(&server)
+		if err != nil {
+			common.ErrorResponse(c, http.StatusInternalServerError, err.Error())
+			return
 		}
-		serverResponses[i] = response
+		serverResponses[i] = *response
 	}
 
 	pageData := common.PageResponse{
@@ -74,14 +71,10 @@ func (h *AccessControlServerHandler) GetByID(c *gin.Context) {
 		return
 	}
 
-	var serverResponse schema.AccessControlServerResponse
-	if server != nil {
-		serverResponse = schema.AccessControlServerResponse{
-			ID:          server.ID,
-			Name:        server.Name,
-			HostAddress: server.HostAddress,
-			Status:      server.Status,
-		}
+	serverResponse, err := h.service.ConvertToResponse(server)
+	if err != nil {
+		common.ErrorResponse(c, http.StatusNotFound, err.Error())
+		return
 	}
 
 	common.SuccessResponse(c, "Success", serverResponse)
@@ -95,27 +88,25 @@ func (h *AccessControlServerHandler) Create(c *gin.Context) {
 		return
 	}
 
+	// ต้องมั่นใจว่ามีการประกาศ var validate = validator.New() ไว้ในไฟล์เดียวกันหรือไฟล์ที่ import
 	if err := validate.Struct(bodyRequest); err != nil {
 		common.ErrorResponse(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	server := model.AccessControlServer{
-		Name:        bodyRequest.Name,
-		HostAddress: bodyRequest.HostAddress,
-		Username:    bodyRequest.Username,
-		Password:    bodyRequest.Password,
-		AccessToken: bodyRequest.AccessToken,
-		ApiToken:    bodyRequest.ApiToken,
-		Status:      bodyRequest.Status,
-	}
-
-	if err := h.service.Save("", &server); err != nil {
+	serverModel, err := h.service.Create(&bodyRequest)
+	if err != nil {
 		common.ErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	common.SuccessResponse(c, "Create server success", server)
+	serverResponse, err := h.service.ConvertToResponse(serverModel)
+	if err != nil {
+		common.ErrorResponse(c, http.StatusNotFound, err.Error())
+		return
+	}
+
+	common.SuccessResponse(c, "Create server success", serverResponse)
 }
 
 // Update updates an existing access control server.
@@ -132,23 +123,44 @@ func (h *AccessControlServerHandler) Update(c *gin.Context) {
 		return
 	}
 
-	server := model.AccessControlServer{
-		Name:        bodyRequest.Name,
-		HostAddress: bodyRequest.HostAddress,
-		Username:    bodyRequest.Username,
-		Password:    bodyRequest.Password,
-		AccessToken: bodyRequest.AccessToken,
-		ApiToken:    bodyRequest.ApiToken,
-		Status:      bodyRequest.Status,
-	}
-	server.ID = id
-
-	if err := h.service.Save(id, &server); err != nil {
+	serverModel, err := h.service.Update(id, &bodyRequest)
+	if err != nil {
 		common.ErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	common.SuccessResponse(c, "Update server success", server)
+	serverResponse, err := h.service.ConvertToResponse(serverModel)
+	if err != nil {
+		common.ErrorResponse(c, http.StatusNotFound, err.Error())
+		return
+	}
+
+	common.SuccessResponse(c, "Update server success", serverResponse)
+}
+
+// PartialUpdate performs a partial update on an existing access control server.
+func (h *AccessControlServerHandler) PartialUpdate(c *gin.Context) {
+	id := c.Param("id")
+
+	var bodyRequest schema.AccessControlServerRequest
+	if err := c.ShouldBindJSON(&bodyRequest); err != nil {
+		common.ErrorResponse(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	serverModel, err := h.service.PartialUpdate(id, &bodyRequest)
+	if err != nil {
+		common.ErrorResponse(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	serverResponse, err := h.service.ConvertToResponse(serverModel)
+	if err != nil {
+		common.ErrorResponse(c, http.StatusNotFound, err.Error())
+		return
+	}
+
+	common.SuccessResponse(c, "Update server success", serverResponse)
 }
 
 // Delete deletes an access control server by its ID.

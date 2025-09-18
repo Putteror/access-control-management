@@ -3,6 +3,7 @@ package repository
 import (
 	"fmt"
 
+	"github.com/google/uuid"
 	"github.com/putteror/access-control-management/internal/app/model"
 	"github.com/putteror/access-control-management/internal/app/schema"
 	"gorm.io/gorm"
@@ -11,11 +12,12 @@ import (
 // AccessControlDeviceRepository is the interface for access control device data access.
 type AccessControlDeviceRepository interface {
 	GetAll(searchQuery schema.AccessControlDeviceSearchQuery) ([]model.AccessControlDevice, error)
-	GetByID(id string) (*model.AccessControlDevice, error)
+	GetByID(id uuid.UUID) (*model.AccessControlDevice, error)
 	Create(device *model.AccessControlDevice) error
 	Update(device *model.AccessControlDevice) error
-	Delete(id string) error
-	IsExistName(name string) (bool, error)
+	Delete(id uuid.UUID) error
+	IsExistName(name string, excludeID uuid.UUID) (bool, error)
+	IsExistHostAddress(hostAddress string, excludeID uuid.UUID) (bool, error)
 }
 
 // accessControlDeviceRepositoryImpl is the implementation of AccessControlDeviceRepository.
@@ -57,7 +59,7 @@ func (r *accessControlDeviceRepositoryImpl) GetAll(searchQuery schema.AccessCont
 }
 
 // GetByID retrieves a device by its ID.
-func (r *accessControlDeviceRepositoryImpl) GetByID(id string) (*model.AccessControlDevice, error) {
+func (r *accessControlDeviceRepositoryImpl) GetByID(id uuid.UUID) (*model.AccessControlDevice, error) {
 	var device model.AccessControlDevice
 	if err := r.db.First(&device, "id = ?", id).Error; err != nil {
 		return nil, err
@@ -76,14 +78,31 @@ func (r *accessControlDeviceRepositoryImpl) Update(device *model.AccessControlDe
 }
 
 // Delete deletes an access control device by its ID.
-func (r *accessControlDeviceRepositoryImpl) Delete(id string) error {
+func (r *accessControlDeviceRepositoryImpl) Delete(id uuid.UUID) error {
 	return r.db.Unscoped().Where("id = ?", id).Delete(&model.AccessControlDevice{}).Error
 }
 
 // IsExistName checks if a device with the given name exists in the database.
-func (r *accessControlDeviceRepositoryImpl) IsExistName(name string) (bool, error) {
+func (r *accessControlDeviceRepositoryImpl) IsExistName(name string, excludeID uuid.UUID) (bool, error) {
 	var count int64
-	if err := r.db.Model(&model.AccessControlDevice{}).Where("name = ? AND deleted_at IS NULL", name).Count(&count).Error; err != nil {
+	db := r.db.Model(&model.AccessControlDevice{}).Where("name = ? AND deleted_at IS NULL", name)
+	if excludeID != uuid.Nil {
+		db = db.Where("id != ?", excludeID)
+	}
+	if err := db.Count(&count).Error; err != nil {
+		return false, fmt.Errorf("failed to check device existence: %w", err)
+	}
+	return count > 0, nil
+}
+
+// IsExistHostAddress
+func (r *accessControlDeviceRepositoryImpl) IsExistHostAddress(hostAddress string, excludeID uuid.UUID) (bool, error) {
+	var count int64
+	db := r.db.Model(&model.AccessControlDevice{}).Where("host_address = ? AND deleted_at IS NULL", hostAddress)
+	if excludeID != uuid.Nil {
+		db = db.Where("id != ?", excludeID)
+	}
+	if err := db.Count(&count).Error; err != nil {
 		return false, fmt.Errorf("failed to check device existence: %w", err)
 	}
 	return count > 0, nil

@@ -7,6 +7,7 @@ import (
 type AccessControlServer struct {
 	BaseModel
 	Name        string     `json:"name"`
+	Type        string     `json:"type"`
 	HostAddress string     `json:"host_address"`
 	Username    *string    `json:"username"`
 	Password    *string    `json:"password"`

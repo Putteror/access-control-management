@@ -35,24 +35,31 @@ func main() {
 
 	fileRepo := repository.NewFileSystemRepo(uploadPath)
 	accessControlDeviceRepo := repository.NewAccessControlDeviceRepository(db)
+	accessControlGroupRepo := repository.NewAccessControlGroupRepository(db)
 	accessControlRuleRepo := repository.NewAccessControlRuleRepository(db)
 	accessControlServerRepo := repository.NewAccessControlServerRepository(db)
 	peopleRepo := repository.NewPersonRepository(db)
 
 	accessControlDeviceService := service.NewAccessControlDeviceService(accessControlDeviceRepo, accessControlServerRepo)
+	accessControlGroupService := service.NewAccessControlGroupService(accessControlGroupRepo, accessControlDeviceRepo, db)
 	accessControlRuleService := service.NewAccessControlRuleService(accessControlRuleRepo)
 	accessControlServerService := service.NewAccessControlServerService(accessControlServerRepo)
+	authService := service.NewAuthService()
 	peopleService := service.NewPersonService(peopleRepo, fileRepo, accessControlRuleRepo)
 
 	accessControlDeviceHandler := handler.NewAccessControlDeviceHandler(accessControlDeviceService)
+	accessControlGroupHandler := handler.NewAccessControlGroupHandler(accessControlGroupService)
 	accessControlRuleHandler := handler.NewAccessControlRuleHandler(accessControlRuleService)
 	accessControlServerHandler := handler.NewAccessControlServerHandler(accessControlServerService)
+	authHandler := handler.NewAuthHandler(authService)
 	peopleHandler := handler.NewPersonHandler(peopleService)
 
 	appRouter := router.NewRouter(
 		accessControlDeviceHandler,
+		accessControlGroupHandler,
 		accessControlRuleHandler,
 		accessControlServerHandler,
+		authHandler,
 		peopleHandler,
 	)
 

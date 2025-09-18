@@ -6,7 +6,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"github.com/putteror/access-control-management/internal/app/common"
-	"github.com/putteror/access-control-management/internal/app/model"
 	"github.com/putteror/access-control-management/internal/app/schema"
 	"github.com/putteror/access-control-management/internal/app/service"
 )
@@ -33,10 +32,10 @@ func (h *AccessControlDeviceHandler) GetAll(c *gin.Context) {
 	}
 
 	if searchQuery.Page <= 0 {
-		searchQuery.Page = 1
+		searchQuery.Page = common.DefaultPage
 	}
 	if searchQuery.Limit <= 0 {
-		searchQuery.Limit = 10
+		searchQuery.Limit = common.DefaultPageSize
 	}
 	devices, err := h.service.GetAll(searchQuery)
 	if err != nil {
@@ -95,28 +94,13 @@ func (h *AccessControlDeviceHandler) Create(c *gin.Context) {
 		return
 	}
 
-	device := model.AccessControlDevice{
-		Name:                  bodyRequest.Name,
-		Type:                  bodyRequest.Type,
-		HostAddress:           bodyRequest.HostAddress,
-		Username:              bodyRequest.Username,
-		Password:              bodyRequest.Password,
-		AccessToken:           bodyRequest.AccessToken,
-		ApiToken:              bodyRequest.ApiToken,
-		RecordScan:            bodyRequest.RecordScan,
-		RecordAttendance:      bodyRequest.RecordAttendance,
-		AllowClockIn:          bodyRequest.AllowClockIn,
-		AllowClockOut:         bodyRequest.AllowClockOut,
-		Status:                bodyRequest.Status,
-		AccessControlServerID: bodyRequest.AccessControlServerID,
-	}
-
-	if err := h.service.Save("", &device); err != nil {
+	deviceModel, err := h.service.Create(&bodyRequest)
+	if err != nil {
 		common.ErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	deviceResponse, err := h.service.ConvertToResponse(&device)
+	deviceResponse, err := h.service.ConvertToResponse(deviceModel)
 	if err != nil {
 		common.ErrorResponse(c, http.StatusNotFound, err.Error())
 		return
@@ -139,29 +123,36 @@ func (h *AccessControlDeviceHandler) Update(c *gin.Context) {
 		return
 	}
 
-	device := model.AccessControlDevice{
-		Name:                  bodyRequest.Name,
-		Type:                  bodyRequest.Type,
-		HostAddress:           bodyRequest.HostAddress,
-		Username:              bodyRequest.Username,
-		Password:              bodyRequest.Password,
-		AccessToken:           bodyRequest.AccessToken,
-		ApiToken:              bodyRequest.ApiToken,
-		RecordScan:            bodyRequest.RecordScan,
-		RecordAttendance:      bodyRequest.RecordAttendance,
-		AllowClockIn:          bodyRequest.AllowClockIn,
-		AllowClockOut:         bodyRequest.AllowClockOut,
-		Status:                bodyRequest.Status,
-		AccessControlServerID: bodyRequest.AccessControlServerID,
-	}
-	device.ID = id
-
-	if err := h.service.Save(id, &device); err != nil {
+	deviceModel, err := h.service.Update(id, &bodyRequest)
+	if err != nil {
 		common.ErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	deviceResponse, err := h.service.ConvertToResponse(&device)
+	deviceResponse, err := h.service.ConvertToResponse(deviceModel)
+	if err != nil {
+		common.ErrorResponse(c, http.StatusNotFound, err.Error())
+		return
+	}
+
+	common.SuccessResponse(c, "Update device success", deviceResponse)
+}
+func (h *AccessControlDeviceHandler) PartialUpdate(c *gin.Context) {
+	id := c.Param("id")
+
+	var bodyRequest schema.AccessControlDeviceRequest
+	if err := c.ShouldBindJSON(&bodyRequest); err != nil {
+		common.ErrorResponse(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	deviceModel, err := h.service.PartialUpdate(id, &bodyRequest)
+	if err != nil {
+		common.ErrorResponse(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	deviceResponse, err := h.service.ConvertToResponse(deviceModel)
 	if err != nil {
 		common.ErrorResponse(c, http.StatusNotFound, err.Error())
 		return
