@@ -3,7 +3,7 @@ package model
 import "time"
 
 type AccessRecord struct {
-	PersonId              string    `json:"person_id"`
+	PersonID              string    `json:"person_id"`
 	AccessControlDeviceID string    `json:"access_control_device_id"`
 	Type                  string    `json:"type"`
 	Result                string    `json:"result"`

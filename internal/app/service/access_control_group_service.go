@@ -395,10 +395,10 @@ func (s *accessControlGroupServiceImpl) createGroupScheduleModels(groupID string
 		}
 		groupSchedules = append(groupSchedules, model.AccessControlGroupSchedule{
 			AccessControlGroupID: groupID,
-			DayOfWeek:            schedule.DayOfWeek,
+			DayOfWeek:            *schedule.DayOfWeek,
 			Date:                 datePtr,
-			StartTime:            schedule.StartTime,
-			EndTime:              schedule.EndTime,
+			StartTime:            *schedule.StartTime,
+			EndTime:              *schedule.EndTime,
 		})
 	}
 	return groupSchedules, nil
@@ -414,18 +414,34 @@ func (s *accessControlGroupServiceImpl) validateAndSetDefaultValues(bodyRequest 
 	}
 	if bodyRequest.AccessControlGroupSchedules == nil {
 		defaultSchedules := []schema.AccessControlGroupScheduleRequest{}
-
+		startTime := "00:00:00"
+		endTime := "23:59:59"
 		// วนลูปสร้าง Schedule สำหรับ DayOfWeek 1 (จันทร์) ถึง 7 (อาทิตย์)
 		for day := 1; day <= 7; day++ {
 			defaultSchedules = append(defaultSchedules, schema.AccessControlGroupScheduleRequest{
-				DayOfWeek: day,
+				DayOfWeek: &day,
 				// ตลอดวัน (00:00:00 - 23:59:59)
 				Date:      nil, // สมมติว่า Date ถูกใช้สำหรับวันเฉพาะ ไม่ใช่วันซ้ำ
-				StartTime: "00:00:00",
-				EndTime:   "23:59:59",
+				StartTime: &startTime,
+				EndTime:   &endTime,
 			})
 		}
 		bodyRequest.AccessControlGroupSchedules = defaultSchedules
+	} else if len(bodyRequest.AccessControlGroupSchedules) != 0 {
+		// check data in array validate and replace if time null
+		for i, schedule := range bodyRequest.AccessControlGroupSchedules {
+			if schedule.DayOfWeek == nil || *schedule.DayOfWeek < 1 || *schedule.DayOfWeek > 7 {
+				return nil, fmt.Errorf("invalid day of week")
+			}
+			if schedule.StartTime == nil || *schedule.StartTime == "" {
+				bodyRequest.AccessControlGroupSchedules[i].StartTime = new(string)
+				*bodyRequest.AccessControlGroupSchedules[i].StartTime = "00:00:00"
+			}
+			if schedule.EndTime == nil || *schedule.EndTime == "" {
+				bodyRequest.AccessControlGroupSchedules[i].EndTime = new(string)
+				*bodyRequest.AccessControlGroupSchedules[i].EndTime = "23:59:59"
+			}
+		}
 	}
 	return bodyRequest, nil
 }

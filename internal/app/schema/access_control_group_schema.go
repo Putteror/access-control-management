@@ -10,10 +10,10 @@ type AccessControlGroupSearchQuery struct {
 // Request
 
 type AccessControlGroupScheduleRequest struct {
-	DayOfWeek int     `json:"dayOfWeek"`
+	DayOfWeek *int    `json:"dayOfWeek"`
 	Date      *string `json:"date"`
-	StartTime string  `json:"startTime"`
-	EndTime   string  `json:"endTime"`
+	StartTime *string `json:"startTime"`
+	EndTime   *string `json:"endTime"`
 }
 
 type AccessControlGroupRequest struct {

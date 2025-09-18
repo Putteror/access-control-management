@@ -12,6 +12,7 @@ func NewRouter(
 	accessControlGroupHandler *handler.AccessControlGroupHandler,
 	accessControlRuleHandler *handler.AccessControlRuleHandler,
 	accessControlServerHandler *handler.AccessControlServerHandler,
+	attendanceHandler *handler.AttendanceHandler,
 	authHandler *handler.AuthHandler,
 	peopleHandler *handler.PersonHandler,
 ) *gin.Engine {
@@ -51,6 +52,7 @@ func NewRouter(
 			accessControlRule.GET("/:id", accessControlRuleHandler.GetByID)
 			accessControlRule.POST("/", accessControlRuleHandler.Create)
 			accessControlRule.PUT("/:id", accessControlRuleHandler.Update)
+			accessControlRule.PATCH("/:id", accessControlRuleHandler.PartialUpdate)
 			accessControlRule.DELETE("/:id", accessControlRuleHandler.Delete)
 		}
 
@@ -63,6 +65,17 @@ func NewRouter(
 			accessControlServer.PUT("/:id", accessControlServerHandler.Update)
 			accessControlServer.PATCH("/:id", accessControlServerHandler.PartialUpdate)
 			accessControlServer.DELETE("/:id", accessControlServerHandler.Delete)
+		}
+
+		// Attendance endpoints
+		attendance := api.Group("/attendances")
+		{
+			attendance.GET("/", attendanceHandler.GetAll)
+			attendance.GET("/:id", attendanceHandler.GetByID)
+			attendance.POST("/", attendanceHandler.Create)
+			attendance.PUT("/:id", attendanceHandler.Update)
+			attendance.PATCH("/:id", attendanceHandler.PartialUpdate)
+			attendance.DELETE("/:id", attendanceHandler.Delete)
 		}
 
 		// People endpoints

@@ -209,7 +209,7 @@ UNIQUE (access_control_group_id, access_control_device_id)
 CREATE TABLE IF NOT EXISTS access_control_rule_groups (
 id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 access_control_group_id UUID NOT NULL REFERENCES access_control_groups(id) ON DELETE CASCADE,
-access_control_device_id UUID NOT NULL REFERENCES access_control_devices(id) ON DELETE CASCADE,
+access_control_rule_id UUID NOT NULL REFERENCES access_control_rules(id) ON DELETE CASCADE,
 created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
 updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
 deleted_at TIMESTAMP WITH TIME ZONE,

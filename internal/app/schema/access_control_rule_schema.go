@@ -18,6 +18,7 @@ type AccessControlRuleInfoResponse struct {
 }
 
 type AccessControlRuleResponse struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
+	ID                  string                           `json:"id"`
+	Name                string                           `json:"name"`
+	AccessControlGroups []AccessControlGroupInfoResponse `json:"accessControlGroups"`
 }

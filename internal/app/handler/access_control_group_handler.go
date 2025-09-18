@@ -33,7 +33,7 @@ func handleErrorResponse(c *gin.Context, err error, defaultMessage string) {
 	// ตรวจสอบข้อความ error สำหรับกรณีชื่อซ้ำที่กำหนดไว้ก่อนหน้า
 	if strings.Contains(err.Error(), "accessControlGroup name is already exist") {
 		// นำไปใช้กับ format ที่กำหนดไว้ [2025-07-05]
-		message := "ApplicationForm name is already exist"
+		message := "Group name is already exist"
 		common.ErrorResponse(c, http.StatusBadRequest, message)
 		return
 	}

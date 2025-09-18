@@ -38,12 +38,14 @@ func main() {
 	accessControlGroupRepo := repository.NewAccessControlGroupRepository(db)
 	accessControlRuleRepo := repository.NewAccessControlRuleRepository(db)
 	accessControlServerRepo := repository.NewAccessControlServerRepository(db)
+	AttendanceRepo := repository.NewAttendanceRepository(db)
 	peopleRepo := repository.NewPersonRepository(db)
 
 	accessControlDeviceService := service.NewAccessControlDeviceService(accessControlDeviceRepo, accessControlServerRepo)
 	accessControlGroupService := service.NewAccessControlGroupService(accessControlGroupRepo, accessControlDeviceRepo, db)
-	accessControlRuleService := service.NewAccessControlRuleService(accessControlRuleRepo)
+	accessControlRuleService := service.NewAccessControlRuleService(accessControlRuleRepo, accessControlGroupRepo, db)
 	accessControlServerService := service.NewAccessControlServerService(accessControlServerRepo)
+	attendanceService := service.NewAttendanceService(AttendanceRepo, db)
 	authService := service.NewAuthService()
 	peopleService := service.NewPersonService(peopleRepo, fileRepo, accessControlRuleRepo)
 
@@ -51,6 +53,7 @@ func main() {
 	accessControlGroupHandler := handler.NewAccessControlGroupHandler(accessControlGroupService)
 	accessControlRuleHandler := handler.NewAccessControlRuleHandler(accessControlRuleService)
 	accessControlServerHandler := handler.NewAccessControlServerHandler(accessControlServerService)
+	attendanceHandler := handler.NewAttendanceHandler(attendanceService)
 	authHandler := handler.NewAuthHandler(authService)
 	peopleHandler := handler.NewPersonHandler(peopleService)
 
@@ -59,6 +62,7 @@ func main() {
 		accessControlGroupHandler,
 		accessControlRuleHandler,
 		accessControlServerHandler,
+		attendanceHandler,
 		authHandler,
 		peopleHandler,
 	)
