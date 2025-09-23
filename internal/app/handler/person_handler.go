@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"mime/multipart"
 	"net/http"
 	"strings"
 	"time"
@@ -38,8 +37,22 @@ func validatePersonType(fl validator.FieldLevel) bool {
 	return false
 }
 
-func (h *PersonHandler) GetAll(c *gin.Context) {
+func personHandleErrorResponse(c *gin.Context, err error, defaultMessage string) {
+	if strings.Contains(err.Error(), "person name is already exist") {
+		// นำไปใช้กับ format ที่กำหนดไว้ [2025-07-05]
+		message := "ApplicationForm name is already exist"
+		common.ErrorResponse(c, http.StatusBadRequest, message)
+		return
+	}
+	common.ErrorResponse(c, http.StatusInternalServerError, defaultMessage)
+}
 
+// ---
+
+// ## Get Operations
+
+// GetAll retrieves all persons.
+func (h *PersonHandler) GetAll(c *gin.Context) {
 	var searchQuery schema.PersonSearchQuery
 	if err := c.ShouldBindQuery(&searchQuery); err != nil {
 		common.ErrorResponse(c, http.StatusBadRequest, "Invalid search query parameter")
@@ -47,16 +60,18 @@ func (h *PersonHandler) GetAll(c *gin.Context) {
 	}
 
 	if searchQuery.Page <= 0 {
-		searchQuery.Page = 1
+		searchQuery.Page = common.DefaultPage
 	}
 	if searchQuery.Limit <= 0 {
-		searchQuery.Limit = 10
+		searchQuery.Limit = common.DefaultPageSize
 	}
+
 	persons, err := h.service.GetAll(searchQuery)
 	if err != nil {
-		common.ErrorResponse(c, http.StatusInternalServerError, err.Error())
+		personHandleErrorResponse(c, err, err.Error())
 		return
 	}
+
 	personResponses := make([]schema.PersonResponse, len(persons))
 	for i, person := range persons {
 		response, err := h.service.ConvertToResponse(&person)
@@ -77,6 +92,7 @@ func (h *PersonHandler) GetAll(c *gin.Context) {
 	common.GetDataListResponse(c, "Success", personResponses, pageData)
 }
 
+// GetByID retrieves a person by its ID.
 func (h *PersonHandler) GetByID(c *gin.Context) {
 	id := c.Param("id")
 
@@ -88,108 +104,74 @@ func (h *PersonHandler) GetByID(c *gin.Context) {
 
 	personResponse, err := h.service.ConvertToResponse(person)
 	if err != nil {
-		common.ErrorResponse(c, http.StatusNotFound, err.Error())
+		common.ErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
 	common.SuccessResponse(c, "Success", personResponse)
 }
 
+// ---
+
+// ## CRUD Operations
+
+// Create creates a new person.
 func (h *PersonHandler) Create(c *gin.Context) {
 	var bodyRequest schema.PersonRequest
 	if err := c.ShouldBind(&bodyRequest); err != nil {
 		common.ErrorResponse(c, http.StatusBadRequest, err.Error())
-		common.ErrorResponse(c, http.StatusBadRequest, "Invalid request body")
 		return
 	}
-
 	if err := validate.Struct(bodyRequest); err != nil {
 		common.ErrorResponse(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	var faceImageFile *multipart.FileHeader
-	file, err := c.FormFile("faceImage")
-	if err != nil {
-		if err == http.ErrMissingFile {
-			faceImageFile = nil
-		} else {
-			common.ErrorResponse(c, http.StatusBadRequest, "Failed to get image file: "+err.Error())
-			return
-		}
-	} else {
-		faceImageFile = file
-	}
-
-	var dob *time.Time
-	if bodyRequest.DateOfBirth != nil {
-		parsedDob, err := time.Parse("2006-01-02", *bodyRequest.DateOfBirth)
-		if err != nil {
-			common.ErrorResponse(c, http.StatusBadRequest, "Invalid date of birth format")
-			return
-		}
-		dob = &parsedDob
-	}
-
-	var activate *time.Time
-	if bodyRequest.ActiveAt != nil {
-		active_date, err := time.Parse("2006-01-02", *bodyRequest.ActiveAt)
-		if err != nil {
-			common.ErrorResponse(c, http.StatusBadRequest, "Invalid active date format")
-			return
-		}
-		activate = &active_date
-	}
-
-	var expire *time.Time
-	if bodyRequest.ExpireAt != nil {
-		expire_date, err := time.Parse("2006-01-02", *bodyRequest.ExpireAt)
-		if err != nil {
-			common.ErrorResponse(c, http.StatusBadRequest, "Invalid expire date format")
-			return
-		}
-		if expire_date.Before(*activate) {
-			common.ErrorResponse(c, http.StatusBadRequest, "expire date must be after active date")
-			return
-		}
-		expire = &expire_date
-	}
-
-	person := model.Person{
-		FirstName:           bodyRequest.FirstName,
-		MiddleName:          bodyRequest.MiddleName,
-		LastName:            bodyRequest.LastName,
-		PersonType:          bodyRequest.PersonType,
-		PersonID:            bodyRequest.PersonID,
-		Gender:              bodyRequest.Gender,
-		DateOfBirth:         dob,
-		Company:             bodyRequest.Company,
-		Department:          bodyRequest.Department,
-		JobPosition:         bodyRequest.JobPosition,
-		Address:             bodyRequest.Address,
-		MobileNumber:        bodyRequest.MobileNumber,
-		Email:               bodyRequest.Email,
-		IsVerified:          bodyRequest.IsVerified,
-		ActiveAt:            activate,
-		ExpireAt:            expire,
-		AccessControlRuleID: bodyRequest.AccessControlRuleID,
-		TimeAttendanceID:    bodyRequest.TimeAttendanceID,
-	}
-
-	if err := h.service.Save("", &person, faceImageFile); err != nil {
-		common.ErrorResponse(c, http.StatusInternalServerError, err.Error())
+	faceImageFile, err := c.FormFile("faceImage")
+	if err != nil && err != http.ErrMissingFile {
+		common.ErrorResponse(c, http.StatusBadRequest, "Failed to get image file: "+err.Error())
 		return
 	}
 
-	personResponse, err := h.service.ConvertToResponse(&person)
+	dob, err := parseTimeFromRequest(bodyRequest.DateOfBirth)
 	if err != nil {
-		common.ErrorResponse(c, http.StatusNotFound, err.Error())
+		common.ErrorResponse(c, http.StatusBadRequest, "Invalid date of birth format")
+		return
+	}
+
+	activate, err := parseTimeFromRequest(bodyRequest.ActiveAt)
+	if err != nil {
+		common.ErrorResponse(c, http.StatusBadRequest, "Invalid active date format")
+		return
+	}
+
+	expire, err := parseTimeFromRequest(bodyRequest.ExpireAt)
+	if err != nil {
+		common.ErrorResponse(c, http.StatusBadRequest, "Invalid expire date format")
+		return
+	}
+	if expire != nil && activate != nil && expire.Before(*activate) {
+		common.ErrorResponse(c, http.StatusBadRequest, "expire date must be after active date")
+		return
+	}
+
+	person := convertToModel(&bodyRequest, dob, activate, expire)
+
+	if err := h.service.Save("", person, faceImageFile, bodyRequest.CardIDs, bodyRequest.LicensePlateTexts); err != nil {
+		personHandleErrorResponse(c, err, err.Error())
+		return
+	}
+
+	personResponse, err := h.service.ConvertToResponse(person)
+	if err != nil {
+		common.ErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
 	common.SuccessResponse(c, "Create person success", personResponse)
 }
 
+// Update updates an existing person.
 func (h *PersonHandler) Update(c *gin.Context) {
 	id := c.Param("id")
 
@@ -203,58 +185,147 @@ func (h *PersonHandler) Update(c *gin.Context) {
 		return
 	}
 
-	var faceImageFile *multipart.FileHeader
-	file, err := c.FormFile("faceImage")
+	faceImageFile, err := c.FormFile("faceImage")
+	if err != nil && err != http.ErrMissingFile {
+		common.ErrorResponse(c, http.StatusBadRequest, "Failed to get image file: "+err.Error())
+		return
+	}
+
+	dob, err := parseTimeFromRequest(bodyRequest.DateOfBirth)
 	if err != nil {
-		if err == http.ErrMissingFile {
-			faceImageFile = nil
-		} else {
-			common.ErrorResponse(c, http.StatusBadRequest, "Failed to get image file: "+err.Error())
-			return
-		}
-	} else {
-		faceImageFile = file
+		common.ErrorResponse(c, http.StatusBadRequest, "Invalid date of birth format")
+		return
 	}
 
-	var dob *time.Time
-	if bodyRequest.DateOfBirth != nil {
-		parsedDob, err := time.Parse("2006-01-02", *bodyRequest.DateOfBirth)
-		if err != nil {
-			common.ErrorResponse(c, http.StatusBadRequest, "Invalid date of birth format")
-			return
-		}
-		dob = &parsedDob
+	activate, err := parseTimeFromRequest(bodyRequest.ActiveAt)
+	if err != nil {
+		common.ErrorResponse(c, http.StatusBadRequest, "Invalid active date format")
+		return
 	}
 
-	var activate *time.Time
-	if bodyRequest.ActiveAt != nil {
-		active_date, err := time.Parse("2006-01-02", *bodyRequest.ActiveAt)
-		if err != nil {
-			common.ErrorResponse(c, http.StatusBadRequest, "Invalid active date format")
-			return
-		}
-		activate = &active_date
+	expire, err := parseTimeFromRequest(bodyRequest.ExpireAt)
+	if err != nil {
+		common.ErrorResponse(c, http.StatusBadRequest, "Invalid expire date format")
+		return
+	}
+	if expire != nil && activate != nil && expire.Before(*activate) {
+		common.ErrorResponse(c, http.StatusBadRequest, "expire date must be after active date")
+		return
 	}
 
-	var expire *time.Time
-	if bodyRequest.ExpireAt != nil {
-		expire_date, err := time.Parse("2006-01-02", *bodyRequest.ExpireAt)
-		if err != nil {
-			common.ErrorResponse(c, http.StatusBadRequest, "Invalid expire date format")
+	person := convertToModel(&bodyRequest, dob, activate, expire)
+
+	if err := h.service.Save(id, person, faceImageFile, bodyRequest.CardIDs, bodyRequest.LicensePlateTexts); err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			common.ErrorResponse(c, http.StatusNotFound, err.Error())
 			return
 		}
-		if expire_date.Before(*activate) {
-			common.ErrorResponse(c, http.StatusBadRequest, "expire date must be after active date")
-			return
-		}
-		expire = &expire_date
+		personHandleErrorResponse(c, err, err.Error())
+		return
 	}
 
-	person := model.Person{
-		FirstName:           bodyRequest.FirstName,
+	personResponse, err := h.service.ConvertToResponse(person)
+	if err != nil {
+		common.ErrorResponse(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	common.SuccessResponse(c, "Update person success", personResponse)
+}
+
+// PartialUpdate updates an existing person.
+func (h *PersonHandler) PartialUpdate(c *gin.Context) {
+	id := c.Param("id")
+
+	var bodyRequest schema.PersonRequest
+	if err := c.ShouldBind(&bodyRequest); err != nil {
+		common.ErrorResponse(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	faceImageFile, err := c.FormFile("faceImage")
+	if err != nil && err != http.ErrMissingFile {
+		common.ErrorResponse(c, http.StatusBadRequest, "Failed to get image file: "+err.Error())
+		return
+	}
+
+	dob, err := parseTimeFromRequest(bodyRequest.DateOfBirth)
+	if err != nil {
+		common.ErrorResponse(c, http.StatusBadRequest, "Invalid date of birth format")
+		return
+	}
+
+	activate, err := parseTimeFromRequest(bodyRequest.ActiveAt)
+	if err != nil {
+		common.ErrorResponse(c, http.StatusBadRequest, "Invalid active date format")
+		return
+	}
+
+	expire, err := parseTimeFromRequest(bodyRequest.ExpireAt)
+	if err != nil {
+		common.ErrorResponse(c, http.StatusBadRequest, "Invalid expire date format")
+		return
+	}
+
+	person := convertToModel(&bodyRequest, dob, activate, expire)
+
+	if err := h.service.PartialUpdate(id, person, faceImageFile, bodyRequest.CardIDs, bodyRequest.LicensePlateTexts); err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			common.ErrorResponse(c, http.StatusNotFound, err.Error())
+			return
+		}
+		personHandleErrorResponse(c, err, err.Error())
+		return
+	}
+
+	personResponse, err := h.service.ConvertToResponse(person)
+	if err != nil {
+		common.ErrorResponse(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	common.SuccessResponse(c, "Update person success", personResponse)
+}
+
+// Delete deletes a person by its ID.
+func (h *PersonHandler) Delete(c *gin.Context) {
+	id := c.Param("id")
+
+	if err := h.service.Delete(id); err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			common.ErrorResponse(c, http.StatusNotFound, err.Error())
+			return
+		}
+		common.ErrorResponse(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	common.SuccessResponse(c, "Person deleted successfully", nil)
+}
+
+// ---
+
+// ## Helper Functions
+
+// parseTimeFromRequest safely parses a string into a time.Time pointer.
+func parseTimeFromRequest(timeString *string) (*time.Time, error) {
+	if timeString == nil || *timeString == "" {
+		return nil, nil
+	}
+	parsedTime, err := time.Parse("2006-01-02", *timeString)
+	if err != nil {
+		return nil, err
+	}
+	return &parsedTime, nil
+}
+
+// convertToModel converts a schema.PersonRequest to a model.Person.
+func convertToModel(bodyRequest *schema.PersonRequest, dob, activate, expire *time.Time) *model.Person {
+	return &model.Person{
+		FirstName:           *bodyRequest.FirstName,
 		MiddleName:          bodyRequest.MiddleName,
-		LastName:            bodyRequest.LastName,
-		PersonType:          bodyRequest.PersonType,
+		LastName:            *bodyRequest.LastName,
+		PersonType:          *bodyRequest.PersonType,
 		PersonID:            bodyRequest.PersonID,
 		Gender:              bodyRequest.Gender,
 		DateOfBirth:         dob,
@@ -264,34 +335,9 @@ func (h *PersonHandler) Update(c *gin.Context) {
 		Address:             bodyRequest.Address,
 		MobileNumber:        bodyRequest.MobileNumber,
 		Email:               bodyRequest.Email,
-		IsVerified:          bodyRequest.IsVerified,
 		ActiveAt:            activate,
 		ExpireAt:            expire,
 		AccessControlRuleID: bodyRequest.AccessControlRuleID,
 		TimeAttendanceID:    bodyRequest.TimeAttendanceID,
 	}
-
-	if err := h.service.Save(id, &person, faceImageFile); err != nil {
-		common.ErrorResponse(c, http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	personResponse, err := h.service.ConvertToResponse(&person)
-	if err != nil {
-		common.ErrorResponse(c, http.StatusNotFound, err.Error())
-		return
-	}
-
-	common.SuccessResponse(c, "Create person success", personResponse)
-}
-
-func (h *PersonHandler) Delete(c *gin.Context) {
-	id := c.Param("id")
-
-	if err := h.service.Delete(id); err != nil {
-		common.ErrorResponse(c, http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	common.SuccessResponse(c, "Person deleted successfully", nil)
 }

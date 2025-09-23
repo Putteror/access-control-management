@@ -2,10 +2,7 @@ package main
 
 import (
 	"log"
-	"os"
-	"path/filepath"
 
-	"github.com/putteror/access-control-management/internal/app/common"
 	"github.com/putteror/access-control-management/internal/app/handler"
 	"github.com/putteror/access-control-management/internal/app/repository"
 	"github.com/putteror/access-control-management/internal/app/service"
@@ -27,13 +24,13 @@ func main() {
 
 	database.AutoMigrate(db)
 
-	wd, err := os.Getwd()
-	if err != nil {
-		log.Fatalf("Error getting working directory: %v", err)
-	}
-	uploadPath := filepath.Join(wd, common.UploadPath)
+	// wd, err := os.Getwd()
+	// if err != nil {
+	// 	log.Fatalf("Error getting working directory: %v", err)
+	// }
+	// uploadPath := filepath.Join(wd, common.UploadPath)
+	// fileRepo := repository.NewFileSystemRepo(uploadPath)
 
-	fileRepo := repository.NewFileSystemRepo(uploadPath)
 	accessControlDeviceRepo := repository.NewAccessControlDeviceRepository(db)
 	accessControlGroupRepo := repository.NewAccessControlGroupRepository(db)
 	accessControlRuleRepo := repository.NewAccessControlRuleRepository(db)
@@ -47,7 +44,7 @@ func main() {
 	accessControlServerService := service.NewAccessControlServerService(accessControlServerRepo)
 	attendanceService := service.NewAttendanceService(AttendanceRepo, db)
 	authService := service.NewAuthService()
-	peopleService := service.NewPersonService(peopleRepo, fileRepo, accessControlRuleRepo)
+	peopleService := service.NewPersonService(peopleRepo, repository.NewPersonCardRepository(db), repository.NewPersonLicensePlateRepository(db), accessControlRuleRepo, AttendanceRepo, db)
 
 	accessControlDeviceHandler := handler.NewAccessControlDeviceHandler(accessControlDeviceService)
 	accessControlGroupHandler := handler.NewAccessControlGroupHandler(accessControlGroupService)

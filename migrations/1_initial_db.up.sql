@@ -159,11 +159,11 @@ UNIQUE (card_number)
 CREATE TABLE IF NOT EXISTS person_license_plates (
 id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 person_id UUID NOT NULL REFERENCES people(id) ON DELETE CASCADE,
-license_plate_number VARCHAR(255) UNIQUE NOT NULL,
+license_plate_text VARCHAR(255) UNIQUE NOT NULL,
 created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
 updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
 deleted_at TIMESTAMP WITH TIME ZONE,
-UNIQUE (license_plate_number, person_id)
+UNIQUE (license_plate_text, person_id)
 );
 
 CREATE TABLE IF NOT EXISTS register_form_fields (
