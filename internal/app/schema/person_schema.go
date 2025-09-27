@@ -43,6 +43,13 @@ type PersonRequest struct {
 	// Face image will receive in function
 }
 
+type PersonInfoResponse struct {
+	ID         string `json:"id"`
+	Name       string `json:"name"`
+	PersonType string `json:"personType"`
+	PersonID   string `json:"personId"`
+}
+
 type PersonResponse struct {
 	ID                string                         `json:"id"`
 	FirstName         string                         `json:"firstName"`

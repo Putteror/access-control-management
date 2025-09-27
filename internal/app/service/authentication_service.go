@@ -6,6 +6,7 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/putteror/access-control-management/internal/app/common"
+	"github.com/putteror/access-control-management/internal/app/repository"
 	"github.com/putteror/access-control-management/internal/app/schema"
 )
 
@@ -15,18 +16,31 @@ type AuthService interface {
 }
 
 type authServiceImpl struct {
+	userRepo repository.UserRepository
 }
 
 // NewAuthService creates a new instance of AuthService.
-func NewAuthService() AuthService {
-	return &authServiceImpl{}
+func NewAuthService(userRepo repository.UserRepository) AuthService {
+	return &authServiceImpl{userRepo: userRepo}
 }
 
 // Login authenticates a user and generates a JWT token.
 func (s *authServiceImpl) Login(username, password string) (string, error) {
 	// 1. Authenticate user credentials.
 	// This is a mock authentication. In a real app, you would query your database.
-	if username != "admin" || password != "password123" {
+	//if username != "admin" || password != "password123" {
+	//	return "", errors.New("invalid credentials")
+	//}
+
+	userModel, err := s.userRepo.GetByUsername(username)
+	if err != nil {
+		return "", errors.New("invalid credentials")
+	}
+	if userModel.Status != "active" {
+		return "", errors.New("user is not active")
+	}
+	is_verified := common.VerifyHashPassword(userModel.PasswordHash, password)
+	if !is_verified {
 		return "", errors.New("invalid credentials")
 	}
 

@@ -12,9 +12,11 @@ func NewRouter(
 	accessControlGroupHandler *handler.AccessControlGroupHandler,
 	accessControlRuleHandler *handler.AccessControlRuleHandler,
 	accessControlServerHandler *handler.AccessControlServerHandler,
+	accessRecordHandler *handler.AccessRecordHandler,
 	attendanceHandler *handler.AttendanceHandler,
 	authHandler *handler.AuthHandler,
 	peopleHandler *handler.PersonHandler,
+	userHandler *handler.UserHandler,
 ) *gin.Engine {
 	router := gin.Default()
 	router.POST("/login", authHandler.Login)
@@ -67,6 +69,17 @@ func NewRouter(
 			accessControlServer.DELETE("/:id", accessControlServerHandler.Delete)
 		}
 
+		// Access record endpoints
+		accessRecord := api.Group("/access-records")
+		{
+			accessRecord.GET("/", accessRecordHandler.GetAll)
+			accessRecord.GET("/:id", accessRecordHandler.GetByID)
+			accessRecord.POST("/", accessRecordHandler.Create)
+			accessRecord.PUT("/:id", accessRecordHandler.Update)
+			accessRecord.PATCH("/:id", accessRecordHandler.PartialUpdate)
+			accessRecord.DELETE("/:id", accessRecordHandler.Delete)
+		}
+
 		// Attendance endpoints
 		attendance := api.Group("/attendances")
 		{
@@ -86,6 +99,17 @@ func NewRouter(
 			people.POST("/", peopleHandler.Create)
 			people.PUT("/:id", peopleHandler.Update)
 			people.DELETE("/:id", peopleHandler.Delete)
+		}
+
+		// User
+		user := api.Group("/users")
+		{
+			user.GET("/", userHandler.GetAll)
+			user.GET("/:id", userHandler.GetByID)
+			user.POST("/", userHandler.Create)
+			user.PUT("/:id", userHandler.Update)
+			user.PATCH("/:id", userHandler.PartialUpdate)
+			user.DELETE("/:id", userHandler.Delete)
 		}
 
 	}

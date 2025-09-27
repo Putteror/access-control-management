@@ -189,6 +189,7 @@ id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 username VARCHAR(255) UNIQUE NOT NULL,
 password_hash VARCHAR(255) NOT NULL,
 permission_id UUID NOT NULL REFERENCES user_permissions(id) ON DELETE CASCADE,
+status VARCHAR(50),
 created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
 updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
 deleted_at TIMESTAMP WITH TIME ZONE,
@@ -218,7 +219,7 @@ UNIQUE (access_control_group_id, access_control_device_id)
 
 CREATE TABLE IF NOT EXISTS access_records (
 id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-person_id UUID NOT NULL REFERENCES people(id) ON DELETE CASCADE,
+person_id UUID REFERENCES people(id) ON DELETE CASCADE,
 access_control_device_id UUID REFERENCES access_control_devices(id) ON DELETE CASCADE,
 type VARCHAR(255),
 result VARCHAR(255),

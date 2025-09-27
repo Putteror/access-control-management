@@ -35,33 +35,41 @@ func main() {
 	accessControlGroupRepo := repository.NewAccessControlGroupRepository(db)
 	accessControlRuleRepo := repository.NewAccessControlRuleRepository(db)
 	accessControlServerRepo := repository.NewAccessControlServerRepository(db)
+	accessRecordRepo := repository.NewAccessRecordRepository(db)
 	AttendanceRepo := repository.NewAttendanceRepository(db)
-	peopleRepo := repository.NewPersonRepository(db)
+	personRepo := repository.NewPersonRepository(db)
+	userRepository := repository.NewUserRepository(db)
 
 	accessControlDeviceService := service.NewAccessControlDeviceService(accessControlDeviceRepo, accessControlServerRepo)
 	accessControlGroupService := service.NewAccessControlGroupService(accessControlGroupRepo, accessControlDeviceRepo, db)
 	accessControlRuleService := service.NewAccessControlRuleService(accessControlRuleRepo, accessControlGroupRepo, db)
+	accessRecordService := service.NewAccessRecordService(accessRecordRepo, personRepo, accessControlDeviceRepo)
 	accessControlServerService := service.NewAccessControlServerService(accessControlServerRepo)
 	attendanceService := service.NewAttendanceService(AttendanceRepo, db)
-	authService := service.NewAuthService()
-	peopleService := service.NewPersonService(peopleRepo, repository.NewPersonCardRepository(db), repository.NewPersonLicensePlateRepository(db), accessControlRuleRepo, AttendanceRepo, db)
+	authService := service.NewAuthService(userRepository)
+	personService := service.NewPersonService(personRepo, repository.NewPersonCardRepository(db), repository.NewPersonLicensePlateRepository(db), accessControlRuleRepo, AttendanceRepo, db)
+	userService := service.NewUserService(userRepository, db)
 
 	accessControlDeviceHandler := handler.NewAccessControlDeviceHandler(accessControlDeviceService)
 	accessControlGroupHandler := handler.NewAccessControlGroupHandler(accessControlGroupService)
 	accessControlRuleHandler := handler.NewAccessControlRuleHandler(accessControlRuleService)
 	accessControlServerHandler := handler.NewAccessControlServerHandler(accessControlServerService)
+	accessRecordHandler := handler.NewAccessRecordHandler(accessRecordService)
 	attendanceHandler := handler.NewAttendanceHandler(attendanceService)
 	authHandler := handler.NewAuthHandler(authService)
-	peopleHandler := handler.NewPersonHandler(peopleService)
+	personHandler := handler.NewPersonHandler(personService)
+	userHandler := handler.NewUserHandler(userService)
 
 	appRouter := router.NewRouter(
 		accessControlDeviceHandler,
 		accessControlGroupHandler,
 		accessControlRuleHandler,
 		accessControlServerHandler,
+		accessRecordHandler,
 		attendanceHandler,
 		authHandler,
-		peopleHandler,
+		personHandler,
+		userHandler,
 	)
 
 	log.Printf("Server is starting on port %s", cfg.Port)
